@@ -1,0 +1,10 @@
+{
+    "name":"g\"ringo",
+    "age":30   ,
+    "codes":[100,200,300],
+    "childs":[
+        {"name":"gringo1","age":1.0},
+        {"name":"gringo2","age":2.0e3},
+        {"name":"gringo3","age":2}
+    ]
+}
