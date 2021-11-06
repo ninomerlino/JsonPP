@@ -140,4 +140,5 @@ JsonData parse_number(const char* char_string, size_t& index);
 string parse_string(const char* char_string, size_t& index);
 string stringify_object(JsonData jsd);
 string stringify_list(JsonData jsd);
+string stringify_string(JsonData jsd);
 string jsd_to_str(JsonData jsd);

@@ -1,1 +1,13 @@
-{"age":30,"childs":[{"age":1.000000,"name":1},{"age":2000.000000,"name":"gringo2"},{"age":2,"name":"gringo3"}],"codes":[100,200,300],"false":0,"name":"g"ringo","null":null,"true":1}
+{
+        "name":"g\"ringo",
+    "age":30   ,
+    "false":false,
+    "true":true,
+    "null":null,
+    "codes":[100,200,300],
+    "childs":[
+        {"name":"gringo1","age":1.0},
+        {"name":"gringo2","age":2.0e3},
+        {"name":"gringo3","age":2}
+    ]
+}

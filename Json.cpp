@@ -221,6 +221,7 @@ void Json::clear_json(string& str){
         case '\\':
             pos+=2;
             break;
+        case '\t':
         case ' ':
         case '\n':
             if(!in_string)str.erase(pos, 1);
@@ -255,9 +256,32 @@ JsonData parse_number(const char* char_string, size_t& index){
 string parse_string(const char* char_string, size_t& index){
     string retu;
     do{
-        if(char_string[index] == '\\')
+        if(char_string[index] == '\\'){//special escape sequences
             index++;
-        retu.push_back(char_string[index]);
+            switch (char_string[index])
+            {   
+            case 'b':
+                retu.push_back('\b');
+                break;
+            case 't':
+                retu.push_back('\t');
+                break;
+            case 'f':
+                retu.push_back('\f');
+                break;
+            case 'r':
+                retu.push_back('\r');
+                break;
+            case 'n':
+                retu.push_back('\n');
+                break;            
+            default:// \" \\ cases
+                retu.push_back(char_string[index]);
+                break;
+            }
+        }else{
+            retu.push_back(char_string[index]);
+        }
         index++;
     }while (char_string[index]!='"');
     index++;
@@ -318,7 +342,7 @@ JsonData parse_list(const char* char_string, size_t& index){
 string stringify_object(JsonData jsd){
     string retu = "{";
     for (pair<const string, JsonData> &entry : jsd.object()){
-        retu.append("\""+entry.first+"\":"+jsd_to_str(entry.second)+",");
+        retu.append(stringify_string(entry.first)+":"+jsd_to_str(entry.second)+",");
     }
     retu[retu.size()-1] = '}';
     return retu;
@@ -334,13 +358,49 @@ string stringify_list(JsonData jsd){
     return retu;
 }
 
+string stringify_string(JsonData jsd){
+    string tmp = jsd.str();
+    string cpy = "\"";
+    for (size_t i = 0; i < tmp.size(); i++){
+        switch (tmp[i])
+        {
+        case '\b':
+            cpy.append("\\b");
+            break;
+        case '\t':
+            cpy.append("\\t");
+            break;
+        case '\r':
+            cpy.append("\\r");
+            break;
+        case '\f':
+            cpy.append("\\f");
+            break;
+        case '\n':
+            cpy.append("\\n");
+            break;
+        case '\"':
+            cpy.append("\\\"");
+            break;
+        case '\\':
+            cpy.append("\\\\");
+            break;
+        default:
+            cpy.push_back(tmp[i]);
+            break;
+        }
+    }
+    cpy.push_back('\"');
+    return cpy;
+}
+
 string jsd_to_str(JsonData jsd){
     switch (jsd.tag())
     {
     case -1:
         return "null";
     case 0:
-        return "\""+jsd.str()+"\"";
+        return stringify_string(jsd);
     case 1:
         return to_string(jsd.i_numb());
     case 2:
@@ -350,7 +410,9 @@ string jsd_to_str(JsonData jsd){
     case 4:
         return stringify_list(jsd.list());
     case 5:
-        return to_string(jsd.boolean());
+        if(jsd.boolean())
+            return "true";
+        return "false";
     }
     JsonError::InvalidJsonData(jsd.tag());
     return "";
