@@ -6,6 +6,8 @@
             "command": "/usr/bin/g++",
             "args": [
                 "-fdiagnostics-color=always",
+                "-lpcrecpp",
+                "-lpcre",
                 "-g",
                 "test.cpp",
                 "Json.cpp",

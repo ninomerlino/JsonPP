@@ -144,7 +144,7 @@ vector<JsonData>& JsonData::list(){
 }
 int JsonData::tag(){return _tag;}
 bool JsonData::null(){return _tag == -1;}
-const string& JsonData::type(){
+const string JsonData::type(){
     switch (_tag){
         case -1:
             return "null";
@@ -163,9 +163,12 @@ const string& JsonData::type(){
         default:
             JsonError::InvalidJsonData((int)_tag);
     }
+    return "";
 }
 
 //JSON
+
+//pcrecpp::RE Json::json_regex = pcrecpp::RE(JSON_PATTERN);
 
 string Json::read_file(const string& filename){
     ifstream stream(filename);
@@ -178,11 +181,14 @@ string Json::read_file(const string& filename){
 void Json::decode(string str_json){
     size_t index = 1;//ignoring first char
     clear_json(str_json);
-    validate_json(str_json);
-    if(str_json[0] == '{')
-        data = parse_object(str_json.c_str(), index);
-    else
-        data = parse_list(str_json.c_str(), index);
+    try{
+        if(str_json[0] == '{')
+            data = parse_object(str_json.c_str(), index);
+        else
+            data = parse_list(str_json.c_str(), index);
+    }catch(...){
+        JsonError::JsonFormatError();
+    } 
 }
 
 void Json::load(const string& filename){
@@ -226,10 +232,6 @@ void Json::clear_json(string& str){
     }
 }
 
-bool Json::validate_json(const string& str){
-    int out = pcre_exec(valid_regex, NULL, str.c_str(), str.size(), 0, 0, NULL, 0);
-}
-
 JsonData& Json::operator[](const string key) {return data[key];}
 JsonData& Json::operator[](const size_t key) {return data[key];}
 
@@ -242,8 +244,8 @@ JsonData parse_number(const char* char_string, size_t& index){
     do{
         str_number.push_back(char_string[index]);
         if(char_string[index] == '.')is_float = true;
-
-    }while (char_string[index]!=',');
+        index++;
+    }while (char_string[index]!=',' && char_string[index]!='}' && char_string[index]!=']');
     if (is_float)
         return stod(str_number);
     else
@@ -258,6 +260,7 @@ string parse_string(const char* char_string, size_t& index){
         retu.push_back(char_string[index]);
         index++;
     }while (char_string[index]!='"');
+    index++;
     return retu;
 }
 
@@ -280,6 +283,7 @@ JsonData parse_value(const char* char_string, size_t& index){
                 index+=5;
                 return false;
             case 'n':
+                index+=5;
                 return JsonData();
             default:
                 return parse_number(char_string, index);
@@ -289,11 +293,10 @@ JsonData parse_value(const char* char_string, size_t& index){
 JsonData parse_object(const char* char_string, size_t& index){
     map<string, JsonData> object;
     string key;
-    JsonData value;
     while (char_string[index]!='}'){
         index++;//key start "
         key = parse_string(char_string, index);
-        index++;//ignore :
+        index++;//ignore ":
         object[key] = parse_value(char_string, index);
         if(char_string[index]==',')index++;//skip,
     };
@@ -303,11 +306,11 @@ JsonData parse_object(const char* char_string, size_t& index){
 
 JsonData parse_list(const char* char_string, size_t& index){
     vector<JsonData> list;
-    JsonData value;
-    while (char_string[index]!=']'){
+    do{
         list.push_back(parse_value(char_string, index));
-        if(char_string[index]==',')index++;//skip,
-    };
+        if(char_string[index]==']')break;//skip,
+        index++;
+    }while (true);
     index++;
     return list;
 }
@@ -350,5 +353,5 @@ string jsd_to_str(JsonData jsd){
         return to_string(jsd.boolean());
     }
     JsonError::InvalidJsonData(jsd.tag());
+    return "";
 }
-

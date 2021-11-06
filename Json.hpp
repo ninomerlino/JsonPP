@@ -5,19 +5,21 @@
 #include<fstream>
 #include<sstream>
 #include<vector>
-#include<pcrecpp.h>
-#define CLEAN_JSON_PATTERN "(?<DEFINE>\
-(?<Number>(?>[0-9]+(\.[0-9]+)*(e[0-9]+)*))\
-(?<String>(?>\"(?>\\(?>[\"\\\/bfnrt]|u[a-fA-F0-9]{4})|[^\"\\\0-\x1F\x7F]+)*\"))\
-(?<Value>(?>(?&String)|(?&Number)|false|true|null|(?&List)|(?&Object)))\
-(?<Entry>(?>(?&String):(?&Value)))\
-(?<List>(?>\[(?>(?&Value)(?>,(?&Value))*)?\]))\
-(?<Object>(?>\{(?>(?&Entry)(?>,(?&Entry))*)?\}))\
-(?<Json>(?>(?&Object)|(?&List)))\
-)|\A(?&Json)\z"
+//#include<pcrecpp.h>
 
 using namespace std;
-
+/*
+const string JSON_PATTERN = R"VOGON((?(DEFINE)
+(?<json>(?>(?&object)|(?&array)))
+(?<object>(?>\{(?>(?&pair)(?>,(?&pair))*)?\}))
+(?<pair>(?>(?&STRING):(?&value)))
+(?<array>(?>\[(?>(?&value)(?>,(?&value))*)?\]))
+(?<value>(?>true|false|null|(?&STRING)|(?&NUMBER)|(?&object)|(?&array)))
+(?<STRING>(?>"(?>\\(?>["\\\/bfnrt]|u[a-fA-F0-9]{4})|[^"\\\0-\x1F\x7F]+)*"))
+(?<NUMBER>(?>-?(?>0|[1-9][0-9]*)(?>\.[0-9]+)?(?>[eE][+-]?[0-9]+)?))
+)
+\A(?&json)\z)VOGON";
+*/
 class JsonData{
 
     private:
@@ -85,7 +87,7 @@ class JsonData{
     bool null();
 
     //returns string version of type
-    const string& type();
+    const string type();
 
     private:
     void set_from_jsd(const JsonData& jsd);
@@ -104,14 +106,14 @@ class JsonError : public std::runtime_error{
     inline static void InvalidJsonData(const int& tag){ throw JsonError("Invalid JsonData with tag"+to_string(tag));}
     inline static void NotMatchingJsonDataTag(const string& otype, const string& rtype){ throw JsonError("Invalid request of type "+rtype+"with object of type"+otype);}
     inline static void FileError(const string& filename){ throw JsonError("Cannot open file "+filename);}
-    inline static void FileError(){ throw JsonError("Invalid Json format");}
+    inline static void JsonFormatError(){ throw JsonError("Invalid Json format");}
 };
 
 
 class Json
     {
     private:
-        const pcre* valid_regex = pcre_compile2(CLEAN_JSON_PATTERN, NULL,NULL,NULL,NULL,NULL);
+        //static pcrecpp::RE json_regex;
         JsonData data;
     public:
         //loads json from file
@@ -128,7 +130,6 @@ class Json
     private:
         string read_file(const string& filename);
         void clear_json(string& str);
-        bool validate_json(const string& str);
 };
 
 //helper functions
