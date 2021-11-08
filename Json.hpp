@@ -8,18 +8,6 @@
 //#include<pcrecpp.h>
 
 using namespace std;
-/*
-const string JSON_PATTERN = R"VOGON((?(DEFINE)
-(?<json>(?>(?&object)|(?&array)))
-(?<object>(?>\{(?>(?&pair)(?>,(?&pair))*)?\}))
-(?<pair>(?>(?&STRING):(?&value)))
-(?<array>(?>\[(?>(?&value)(?>,(?&value))*)?\]))
-(?<value>(?>true|false|null|(?&STRING)|(?&NUMBER)|(?&object)|(?&array)))
-(?<STRING>(?>"(?>\\(?>["\\\/bfnrt]|u[a-fA-F0-9]{4})|[^"\\\0-\x1F\x7F]+)*"))
-(?<NUMBER>(?>-?(?>0|[1-9][0-9]*)(?>\.[0-9]+)?(?>[eE][+-]?[0-9]+)?))
-)
-\A(?&json)\z)VOGON";
-*/
 class JsonData{
 
     private:
@@ -28,33 +16,19 @@ class JsonData{
     public:
     JsonData();
     JsonData(const JsonData& jsd);
+    JsonData(const char* s);
     JsonData(const string& s);
     JsonData(const long& l);
+    JsonData(const int& i);
+    JsonData(const float& f);
     JsonData(const double& d);
     JsonData(const map<string, JsonData>& m);
     JsonData(const vector<JsonData>& v);
-    JsonData(const bool&);
+    JsonData(const bool&);//explicit because bool is a dick and wants all the fuking conversion
     ~JsonData();
-    //set union value to string s *sets tag*
-    void operator=(string s);
-
-    //set union value to long l *sets tag*
-    void operator=(long l);
-
-    //set union value to double d *sets tag*
-    void operator=(double d);
-
-    //set union value to double d *sets tag*
-    void operator=(bool b);
-
-    //set union value to map m *sets tag*
-    void operator=(map<string, JsonData> m);
-
-    //set union value to vector v *sets tag*
-    void operator=(vector<JsonData> v);
 
     //void operator=(JsonData& jsd);
-    void operator=(JsonData jsd);
+    void operator=(const JsonData& jsd);
 
     //if JsonData is not map throws error otherwise access the map entry
     JsonData& operator[](const string key);
@@ -81,17 +55,17 @@ class JsonData{
     bool& boolean();
 
     //returns tag of JsonData
-    int tag();
+    constexpr int tag() const;
 
     //returns true if JsonData is null
-    bool null();
+    constexpr bool null() const;
 
     //returns string version of type
-    const string type();
+    string type() const;
 
     private:
     void set_from_jsd(const JsonData& jsd);
-    void set_from_string(const string& s);
+    void set_from_string(const char* s);
     void set_from_long(const long& l);
     void set_from_double(const double& d);
     void set_from_map(const map<string, JsonData>& m);
@@ -138,7 +112,7 @@ JsonData parse_object(const char* char_string, size_t& index);
 JsonData parse_list(const char* char_string, size_t& index);
 JsonData parse_number(const char* char_string, size_t& index);
 string parse_string(const char* char_string, size_t& index);
-string stringify_object(JsonData jsd);
-string stringify_list(JsonData jsd);
-string stringify_string(JsonData jsd);
-string jsd_to_str(JsonData jsd);
+string stringify_object(const JsonData& jsd);
+string stringify_list(JsonData& jsd);
+string stringify_string(const string& tmp);
+string jsd_to_str(JsonData& jsd);

@@ -41,10 +41,10 @@ void JsonData::set_from_bool(const bool& b){
     _value = new bool;
     *(bool*)_value = b; 
 }
-void JsonData::set_from_string(const string& s){
+void JsonData::set_from_string(const char* s){
     _tag = 0;
     _value = new string();
-    *(string*)_value = s.c_str();
+    *(string*)_value = s;
 }
 void JsonData::set_from_long(const long& l){
     _tag = 1;
@@ -97,18 +97,15 @@ JsonData::~JsonData(){clear_pointer();};
 JsonData::JsonData(){}
 JsonData::JsonData(const bool& b){set_from_bool(b);}
 JsonData::JsonData(const JsonData& jsd){set_from_jsd(jsd);}
-JsonData::JsonData(const string& s){set_from_string(s);}
+JsonData::JsonData(const string& s){set_from_string(s.c_str());}
+JsonData::JsonData(const char* s){set_from_string(s);}
 JsonData::JsonData(const long & l){set_from_long(l);}
+JsonData::JsonData(const int & i){set_from_long(i);}
+JsonData::JsonData(const float & f){set_from_double(f);}
 JsonData::JsonData(const double& d){set_from_double(d);}
 JsonData::JsonData(const map<string, JsonData>& m){set_from_map(m);}
 JsonData::JsonData(const vector<JsonData>& v){set_from_vector(v);}
-void JsonData::operator=(string s){set_from_string(s);}
-void JsonData::operator=(long l){set_from_long(l);}
-void JsonData::operator=(bool b){set_from_bool(b);}
-void JsonData::operator=(double d){set_from_double(d);}
-void JsonData::operator=(map<string, JsonData> m){set_from_map(m);}
-void JsonData::operator=(vector<JsonData> v){set_from_vector(v);}
-void JsonData::operator=(JsonData jsd){set_from_jsd(jsd);}
+void JsonData::operator=(const JsonData& jsd){set_from_jsd(jsd);}
 
 JsonData& JsonData::operator[](const string key){
     if(_tag != 3)JsonError::NotMatchingJsonDataTag(type(), "map");
@@ -142,9 +139,9 @@ vector<JsonData>& JsonData::list(){
     if(_tag != 4)JsonError::NotMatchingJsonDataTag(type(), "vector");
     return *(vector<JsonData>*)_value;
 }
-int JsonData::tag(){return _tag;}
-bool JsonData::null(){return _tag == -1;}
-const string JsonData::type(){
+constexpr int JsonData::tag() const {return _tag;}
+constexpr bool JsonData::null()const {return _tag == -1;}
+string JsonData::type() const {
     switch (_tag){
         case -1:
             return "null";
@@ -293,7 +290,7 @@ JsonData parse_value(const char* char_string, size_t& index){
         {
             case '"'://string case
                 index++;
-                return parse_string(char_string, index);
+                return JsonData(parse_string(char_string, index));
             case '{'://object case
                 index++;
                 return parse_object(char_string, index);
@@ -339,7 +336,7 @@ JsonData parse_list(const char* char_string, size_t& index){
     return list;
 }
 
-string stringify_object(JsonData jsd){
+string stringify_object(JsonData& jsd){
     string retu = "{";
     for (pair<const string, JsonData> &entry : jsd.object()){
         retu.append(stringify_string(entry.first)+":"+jsd_to_str(entry.second)+",");
@@ -348,7 +345,7 @@ string stringify_object(JsonData jsd){
     return retu;
 }
 
-string stringify_list(JsonData jsd){
+string stringify_list(JsonData& jsd){
     string retu = "[";
     for (JsonData &elm : jsd.list()){
         retu.append(jsd_to_str(elm));
@@ -358,8 +355,7 @@ string stringify_list(JsonData jsd){
     return retu;
 }
 
-string stringify_string(JsonData jsd){
-    string tmp = jsd.str();
+string stringify_string(const string& tmp){
     string cpy = "\"";
     for (size_t i = 0; i < tmp.size(); i++){
         switch (tmp[i])
@@ -394,21 +390,21 @@ string stringify_string(JsonData jsd){
     return cpy;
 }
 
-string jsd_to_str(JsonData jsd){
+string jsd_to_str(JsonData& jsd){
     switch (jsd.tag())
     {
     case -1:
         return "null";
     case 0:
-        return stringify_string(jsd);
+        return stringify_string(jsd.str());
     case 1:
         return to_string(jsd.i_numb());
     case 2:
         return to_string(jsd.f_numb());
     case 3:
-        return stringify_object(jsd.object());
+        return stringify_object(jsd);
     case 4:
-        return stringify_list(jsd.list());
+        return stringify_list(jsd);
     case 5:
         if(jsd.boolean())
             return "true";
