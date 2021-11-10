@@ -252,8 +252,8 @@ namespace Json{
     }
 
     string parse_string(const char* char_string, size_t& index){
-        string retu;
-        do{
+        string retu = "";
+        while (char_string[index]!='"'){
             if(char_string[index] == '\\'){//special escape sequences
                 index++;
                 switch (char_string[index])
@@ -281,7 +281,7 @@ namespace Json{
                 retu.push_back(char_string[index]);
             }
             index++;
-        }while (char_string[index]!='"');
+        };
         index++;
         return retu;
     }
@@ -338,6 +338,7 @@ namespace Json{
     }
 
     string stringify_object(JsonData& jsd){
+        if(jsd.object().size() == 0 )return "{}";
         string retu = "{";
         for (pair<const string, JsonData> &entry : jsd.object()){
             retu.append(stringify_string(entry.first)+":"+jsd_to_str(entry.second)+",");
@@ -347,10 +348,10 @@ namespace Json{
     }
 
     string stringify_list(JsonData& jsd){
+        if(jsd.list().size() == 0 )return "[]";
         string retu = "[";
         for (JsonData &elm : jsd.list()){
-            retu.append(jsd_to_str(elm));
-            retu.append(",");
+            retu.append(jsd_to_str(elm)+",");
         }
         retu[retu.size()-1] = ']';
         return retu;

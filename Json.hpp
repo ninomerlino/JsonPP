@@ -77,8 +77,8 @@ class JsonData{
 class JsonError : public std::runtime_error{
     public:
     inline JsonError(const string& msg): runtime_error(msg.c_str()){};
-    inline static void InvalidJsonData(const int& tag){ throw JsonError("Invalid JsonData with tag"+to_string(tag));}
-    inline static void NotMatchingJsonDataTag(const string& otype, const string& rtype){ throw JsonError("Invalid request of type "+rtype+"with object of type"+otype);}
+    inline static void InvalidJsonData(const int& tag){ throw JsonError("Invalid JsonData with tag "+to_string(tag));}
+    inline static void NotMatchingJsonDataTag(const string& otype, const string& rtype){ throw JsonError("Invalid request of type "+rtype+" with object of type "+otype);}
     inline static void FileError(const string& filename){ throw JsonError("Cannot open file "+filename);}
     inline static void JsonFormatError(){ throw JsonError("Invalid Json format");}
 };
