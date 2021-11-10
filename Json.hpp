@@ -84,35 +84,26 @@ class JsonError : public std::runtime_error{
 };
 
 
-class Json
-    {
-    private:
-        //static pcrecpp::RE json_regex;
-        JsonData data;
-    public:
+namespace Json{
         //loads json from file
-        void load(const string& filename);
+        JsonData load(const string& filename);
         //decode json from string
-        void decode(string str_json);
+        JsonData decode(string str_json);
         //encode json to string
-        string encode();
+        string encode(JsonData& jsd);
         //encode json to string and then dumps it into a file
-        void dump(const string& filename);
+        void dump(const string& filename, JsonData& jsd);
         //helpers to get cleaner access to data
-        JsonData& operator[](const string key);
-        JsonData& operator[](const size_t key);
-    private:
         string read_file(const string& filename);
         void clear_json(string& str);
+        //parse and dump helper
+        JsonData parse_value(const char* char_string, size_t& index);
+        JsonData parse_object(const char* char_string, size_t& index);
+        JsonData parse_list(const char* char_string, size_t& index);
+        JsonData parse_number(const char* char_string, size_t& index);
+        string parse_string(const char* char_string, size_t& index);
+        string stringify_object(JsonData& jsd);
+        string stringify_list(JsonData& jsd);
+        string stringify_string(const string& tmp);
+        string jsd_to_str(JsonData& jsd);
 };
-
-//helper functions
-JsonData parse_value(const char* char_string, size_t& index);
-JsonData parse_object(const char* char_string, size_t& index);
-JsonData parse_list(const char* char_string, size_t& index);
-JsonData parse_number(const char* char_string, size_t& index);
-string parse_string(const char* char_string, size_t& index);
-string stringify_object(const JsonData& jsd);
-string stringify_list(JsonData& jsd);
-string stringify_string(const string& tmp);
-string jsd_to_str(JsonData& jsd);

@@ -165,251 +165,253 @@ string JsonData::type() const {
 
 //JSON
 
-//pcrecpp::RE Json::json_regex = pcrecpp::RE(JSON_PATTERN);
+//pcrecpp::RE json_regex = pcrecpp::RE(JSON_PATTERN);
 
-string Json::read_file(const string& filename){
-    ifstream stream(filename);
-    if(!stream.is_open())JsonError::FileError(filename);
-    stringstream buffer;
-    buffer << stream.rdbuf();
-    return buffer.str();
-}
+namespace Json{
+    string read_file(const string& filename){
+        ifstream stream(filename);
+        if(!stream.is_open())JsonError::FileError(filename);
+        stringstream buffer;
+        buffer << stream.rdbuf();
+        return buffer.str();
+    }
 
-void Json::decode(string str_json){
-    size_t index = 1;//ignoring first char
-    clear_json(str_json);
-    try{
-        if(str_json[0] == '{')
-            data = parse_object(str_json.c_str(), index);
-        else
-            data = parse_list(str_json.c_str(), index);
-    }catch(...){
-        JsonError::JsonFormatError();
-    } 
-}
-
-void Json::load(const string& filename){
-    string encoded_data = read_file(filename);
-    decode(encoded_data);
-}
-
-void Json::dump(const string& filename){
-    ofstream stream(filename);
-    if(!stream.is_open())JsonError::FileError(filename);
-    stream << encode();
-    stream.close();
-}
-
-string Json::encode()
-{
-    return jsd_to_str(data);
-}
-
-void Json::clear_json(string& str){
-    size_t pos = 0;
-    bool in_string = false;
-    while (pos < str.size()){
-        switch (str[pos])
-        {
-        case '"':
-            in_string = (in_string)? false : true;
-            pos++;
-            break;
-        case '\\':
-            pos+=2;
-            break;
-        case '\t':
-        case ' ':
-        case '\n':
-            if(!in_string)str.erase(pos, 1);
-            break;
-        default:
-            pos++;
-            break;
+    JsonData decode(string str_json){
+        size_t index = 1;//ignoring first char
+        clear_json(str_json);
+        try{
+            if(str_json[0] == '{')
+                return parse_object(str_json.c_str(), index);
+            else
+                return parse_list(str_json.c_str(), index);
+        }catch(...){
+            JsonError::JsonFormatError();
+            return JsonData();
         }
     }
-}
 
-JsonData& Json::operator[](const string key) {return data[key];}
-JsonData& Json::operator[](const size_t key) {return data[key];}
+    JsonData load(const string& filename){
+        string encoded_data = read_file(filename);
+        return decode(encoded_data);
+    }
 
-//helperfunctions
+    void dump(const string& filename, JsonData& jsd){
+        ofstream stream(filename);
+        if(!stream.is_open())JsonError::FileError(filename);
+        stream << encode(jsd);
+        stream.close();
+    }
 
-JsonData parse_number(const char* char_string, size_t& index){
-    size_t start = index;
-    string str_number;
-    bool is_float = false;
-    do{
-        str_number.push_back(char_string[index]);
-        if(char_string[index] == '.')is_float = true;
-        index++;
-    }while (char_string[index]!=',' && char_string[index]!='}' && char_string[index]!=']');
-    if (is_float)
-        return stod(str_number);
-    else
-        return stol(str_number);
-}
+    string encode(JsonData& jsd)
+    {
+        return jsd_to_str(jsd);
+    }
 
-string parse_string(const char* char_string, size_t& index){
-    string retu;
-    do{
-        if(char_string[index] == '\\'){//special escape sequences
-            index++;
-            switch (char_string[index])
-            {   
-            case 'b':
-                retu.push_back('\b');
+    void clear_json(string& str){
+        size_t pos = 0;
+        bool in_string = false;
+        while (pos < str.size()){
+            switch (str[pos])
+            {
+            case '"':
+                in_string = (in_string)? false : true;
+                pos++;
                 break;
-            case 't':
-                retu.push_back('\t');
+            case '\\':
+                pos+=2;
                 break;
-            case 'f':
-                retu.push_back('\f');
+            case '\t':
+            case ' ':
+            case '\n':
+                if(!in_string)str.erase(pos, 1);
+                else pos++;
                 break;
-            case 'r':
-                retu.push_back('\r');
-                break;
-            case 'n':
-                retu.push_back('\n');
-                break;            
-            default:// \" \\ cases
-                retu.push_back(char_string[index]);
+            default:
+                pos++;
                 break;
             }
-        }else{
-            retu.push_back(char_string[index]);
         }
-        index++;
-    }while (char_string[index]!='"');
-    index++;
-    return retu;
-}
+    }
 
-JsonData parse_value(const char* char_string, size_t& index){
-        switch (char_string[index])
-        {
-            case '"'://string case
+    //helperfunctions
+
+    JsonData parse_number(const char* char_string, size_t& index){
+        size_t start = index;
+        string str_number;
+        bool is_float = false;
+        do{
+            str_number.push_back(char_string[index]);
+            if(char_string[index] == '.' || char_string[index] == 'e' || char_string[index] == 'E')
+                is_float = true;
+            index++;
+        }while (char_string[index]!=',' && char_string[index]!='}' && char_string[index]!=']');
+        if (is_float)
+            return stod(str_number);
+        else
+            return stol(str_number);
+    }
+
+    string parse_string(const char* char_string, size_t& index){
+        string retu;
+        do{
+            if(char_string[index] == '\\'){//special escape sequences
                 index++;
-                return JsonData(parse_string(char_string, index));
-            case '{'://object case
-                index++;
-                return parse_object(char_string, index);
-            case '['://object case
-                index++;
-                return parse_list(char_string, index);
-            case 't':
-                index+=4;
-                return true;
-            case 'f':
-                index+=5;
-                return false;
-            case 'n':
-                index+=5;
-                return JsonData();
+                switch (char_string[index])
+                {   
+                case 'b':
+                    retu.push_back('\b');
+                    break;
+                case 't':
+                    retu.push_back('\t');
+                    break;
+                case 'f':
+                    retu.push_back('\f');
+                    break;
+                case 'r':
+                    retu.push_back('\r');
+                    break;
+                case 'n':
+                    retu.push_back('\n');
+                    break;            
+                default:// \" \\ cases
+                    retu.push_back(char_string[index]);
+                    break;
+                }
+            }else{
+                retu.push_back(char_string[index]);
+            }
+            index++;
+        }while (char_string[index]!='"');
+        index++;
+        return retu;
+    }
+
+    JsonData parse_value(const char* char_string, size_t& index){
+            switch (char_string[index])
+            {
+                case '"'://string case
+                    index++;
+                    return JsonData(parse_string(char_string, index));
+                case '{'://object case
+                    index++;
+                    return parse_object(char_string, index);
+                case '['://object case
+                    index++;
+                    return parse_list(char_string, index);
+                case 't':
+                    index+=4;
+                    return true;
+                case 'f':
+                    index+=5;
+                    return false;
+                case 'n':
+                    index+=4;
+                    return JsonData();
+                default:
+                    return parse_number(char_string, index);
+            }
+    }
+
+    JsonData parse_object(const char* char_string, size_t& index){
+        map<string, JsonData> object;
+        string key;
+        while (char_string[index]!='}'){
+            index++;//key start "
+            key = parse_string(char_string, index);
+            index++;//ignore ":
+            object[key] = parse_value(char_string, index);
+            if(char_string[index]==',')index++;//skip,
+        };
+        index++;
+        return object;
+    }
+
+    JsonData parse_list(const char* char_string, size_t& index){
+        vector<JsonData> list;
+        while (char_string[index]!=']'){//after null
+            list.push_back(parse_value(char_string, index));
+            if(char_string[index]==']')break;//this is bad i know but in case the Json is not corrected and we have somethng that is not , or ] it enters infinite loop
+            index++;//skip
+        };
+        index++;
+        return list;
+    }
+
+    string stringify_object(JsonData& jsd){
+        string retu = "{";
+        for (pair<const string, JsonData> &entry : jsd.object()){
+            retu.append(stringify_string(entry.first)+":"+jsd_to_str(entry.second)+",");
+        }
+        retu[retu.size()-1] = '}';
+        return retu;
+    }
+
+    string stringify_list(JsonData& jsd){
+        string retu = "[";
+        for (JsonData &elm : jsd.list()){
+            retu.append(jsd_to_str(elm));
+            retu.append(",");
+        }
+        retu[retu.size()-1] = ']';
+        return retu;
+    }
+
+    string stringify_string(const string& tmp){
+        string cpy = "\"";
+        for (size_t i = 0; i < tmp.size(); i++){
+            switch (tmp[i])
+            {
+            case '\b':
+                cpy.append("\\b");
+                break;
+            case '\t':
+                cpy.append("\\t");
+                break;
+            case '\r':
+                cpy.append("\\r");
+                break;
+            case '\f':
+                cpy.append("\\f");
+                break;
+            case '\n':
+                cpy.append("\\n");
+                break;
+            case '\"':
+                cpy.append("\\\"");
+                break;
+            case '\\':
+                cpy.append("\\\\");
+                break;
             default:
-                return parse_number(char_string, index);
+                cpy.push_back(tmp[i]);
+                break;
+            }
         }
-}
-
-JsonData parse_object(const char* char_string, size_t& index){
-    map<string, JsonData> object;
-    string key;
-    while (char_string[index]!='}'){
-        index++;//key start "
-        key = parse_string(char_string, index);
-        index++;//ignore ":
-        object[key] = parse_value(char_string, index);
-        if(char_string[index]==',')index++;//skip,
-    };
-    index++;
-    return object;
-}
-
-JsonData parse_list(const char* char_string, size_t& index){
-    vector<JsonData> list;
-    do{
-        list.push_back(parse_value(char_string, index));
-        if(char_string[index]==']')break;//skip,
-        index++;
-    }while (true);
-    index++;
-    return list;
-}
-
-string stringify_object(JsonData& jsd){
-    string retu = "{";
-    for (pair<const string, JsonData> &entry : jsd.object()){
-        retu.append(stringify_string(entry.first)+":"+jsd_to_str(entry.second)+",");
+        cpy.push_back('\"');
+        return cpy;
     }
-    retu[retu.size()-1] = '}';
-    return retu;
-}
 
-string stringify_list(JsonData& jsd){
-    string retu = "[";
-    for (JsonData &elm : jsd.list()){
-        retu.append(jsd_to_str(elm));
-        retu.append(",");
-    }
-    retu[retu.size()-1] = ']';
-    return retu;
-}
-
-string stringify_string(const string& tmp){
-    string cpy = "\"";
-    for (size_t i = 0; i < tmp.size(); i++){
-        switch (tmp[i])
+    string jsd_to_str(JsonData& jsd){
+        switch (jsd.tag())
         {
-        case '\b':
-            cpy.append("\\b");
-            break;
-        case '\t':
-            cpy.append("\\t");
-            break;
-        case '\r':
-            cpy.append("\\r");
-            break;
-        case '\f':
-            cpy.append("\\f");
-            break;
-        case '\n':
-            cpy.append("\\n");
-            break;
-        case '\"':
-            cpy.append("\\\"");
-            break;
-        case '\\':
-            cpy.append("\\\\");
-            break;
-        default:
-            cpy.push_back(tmp[i]);
-            break;
+        case -1:
+            return "null";
+        case 0:
+            return stringify_string(jsd.str());
+        case 1:
+            return to_string(jsd.i_numb());
+        case 2:
+            return to_string(jsd.f_numb());
+        case 3:
+            return stringify_object(jsd);
+        case 4:
+            return stringify_list(jsd);
+        case 5:
+            if(jsd.boolean())
+                return "true";
+            return "false";
         }
+        JsonError::InvalidJsonData(jsd.tag());
+        return "";
     }
-    cpy.push_back('\"');
-    return cpy;
-}
-
-string jsd_to_str(JsonData& jsd){
-    switch (jsd.tag())
-    {
-    case -1:
-        return "null";
-    case 0:
-        return stringify_string(jsd.str());
-    case 1:
-        return to_string(jsd.i_numb());
-    case 2:
-        return to_string(jsd.f_numb());
-    case 3:
-        return stringify_object(jsd);
-    case 4:
-        return stringify_list(jsd);
-    case 5:
-        if(jsd.boolean())
-            return "true";
-        return "false";
-    }
-    JsonError::InvalidJsonData(jsd.tag());
-    return "";
 }
