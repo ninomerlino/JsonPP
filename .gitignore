@@ -1,4 +1,5 @@
 .vscode/
 times.txt
-test.md
+test.py
+times.md
 *.json
