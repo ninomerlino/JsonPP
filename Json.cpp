@@ -1,5 +1,6 @@
 #include"Json.hpp"
 #define TAIL_PRINT 30
+using namespace std
 //JSONDATA
 void JsonData::set_from_jsd(const JsonData& jsd){
     clear_pointer();
